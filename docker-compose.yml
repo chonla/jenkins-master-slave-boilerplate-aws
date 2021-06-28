@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+    jenkins-dind:
+        image: docker:dind
+        ports:
+            - 2376:2376
+        privileged: true
+        volumes:
+            - docker-cert:/certs/client/
+            - docker-run:/var/run/
+            - jenkins-home:/var/jenkins_home/
+        environment: 
+            - DOCKER_TLS_CERTDIR=/certs
+            - TZ=Asia/Bangkok
+    jenkins-main:
+        build: ./dockers/main
+        ports:
+            - 80:8080
+            - 50000:5000
+        privileged: true
+        volumes: 
+            - docker-cert:/certs/client/:ro
+            - docker-run:/var/run/
+            - jenkins-home:/var/jenkins_home/
+        environment:
+            - JENKINS_USERNAME=${JENKINS_USERNAME}
+            - JENKINS_PASSWORD=${JENKINS_PASSWORD}
+            - DOCKER_HOST=tcp://jenkins-dind:2376
+            - DOCKER_CERT_PATH=/certs/client
+            - DOCKER_TLS_VERIFY=1
+            - TZ=Asia/Bangkok
+        links: 
+            - jenkins-dind
+        depends_on:
+            - jenkins-dind
+    jenkins-swarm:
+        image: chonla/jenkins-slave-nodejs-dind:16.4.0
+        volumes:
+            - docker-run:/var/run/
+            - jenkins-home-slave:/var/jenkins_home/slave
+        environment:
+            - JENKINS_USERNAME=${JENKINS_USERNAME}
+            - JENKINS_PASSWORD=${JENKINS_PASSWORD}
+            - JENKINS_SLAVE_NAME=jenkins-agent
+            - JENKINS_EXECUTORS=5
+            - JENKINS_LABELS="nodejs"
+            - JENKINS_MASTER=http://jenkins-main:8080
+            - TZ=Asia/Bangkok
+            - JENKINS_UC_DOWNLOAD=http://mirrors.jenkins-ci.org
+        entrypoint: ['/opt/docker-entrypoint.sh', 'java']
+        links: 
+            - jenkins-main
+        depends_on:
+            - jenkins-dind
+            - jenkins-main
+
+volumes:
+    docker-run:
+    docker-cert:
+    jenkins-home:
+    jenkins-home-slave:
