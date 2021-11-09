@@ -35,7 +35,7 @@ services:
         depends_on:
             - jenkins-dind
     jenkins-swarm:
-        image: chonla/jenkins-slave-nodejs-dind:16.4.0
+        image: chonla/jenkins-slave-nodejs-dind-aws-kustomize:1.0.0
         volumes:
             - docker-run:/var/run/
             - jenkins-home-slave:/var/jenkins_home/slave
@@ -60,3 +60,8 @@ volumes:
     docker-cert:
     jenkins-home:
     jenkins-home-slave:
+        driver: local
+        driver_opts:
+            o: bind
+            type: none
+            device: /data/slave-data
