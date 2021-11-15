@@ -8,9 +8,9 @@ services:
         privileged: true
         volumes:
             - docker-cert:/certs/client/
-            - docker-run:/var/run/
-            - jenkins-home:/var/jenkins_home/
-        environment: 
+            - docker-run-dind:/var/run/
+            - jenkins-home-master:/var/jenkins_home/
+        environment:
             - DOCKER_TLS_CERTDIR=/certs
             - TZ=Asia/Bangkok
     jenkins-main:
@@ -19,10 +19,10 @@ services:
             - 80:8080
             - 50000:5000
         privileged: true
-        volumes: 
+        volumes:
             - docker-cert:/certs/client/:ro
-            - docker-run:/var/run/
-            - jenkins-home:/var/jenkins_home/
+            - docker-run-dind:/var/run/
+            - jenkins-home-master:/var/jenkins_home/
         environment:
             - JENKINS_USERNAME=${JENKINS_USERNAME}
             - JENKINS_PASSWORD=${JENKINS_PASSWORD}
@@ -30,14 +30,14 @@ services:
             - DOCKER_CERT_PATH=/certs/client
             - DOCKER_TLS_VERIFY=1
             - TZ=Asia/Bangkok
-        links: 
+        links:
             - jenkins-dind
         depends_on:
             - jenkins-dind
     jenkins-swarm:
         image: chonla/jenkins-slave-nodejs-dind-aws-kustomize:1.0.1
         volumes:
-            - docker-run:/var/run/
+            - docker-run-dind:/var/run/
             - jenkins-home-slave:/var/jenkins_home/slave
         environment:
             - JENKINS_USERNAME=${JENKINS_USERNAME}
@@ -49,16 +49,26 @@ services:
             - TZ=Asia/Bangkok
             - JENKINS_UC_DOWNLOAD=http://mirrors.jenkins-ci.org
         entrypoint: ['/opt/docker-entrypoint.sh', 'java']
-        links: 
+        links:
             - jenkins-main
         depends_on:
             - jenkins-dind
             - jenkins-main
 
 volumes:
-    docker-run:
+    docker-run-dind:
+        driver: local
+        driver_opts:
+            o: bind
+            type: none
+            device: /data/run-data
     docker-cert:
-    jenkins-home:
+    jenkins-home-master:
+        driver: local
+        driver_opts:
+            o: bind
+            type: none
+            device: /data/master-data/jenkins_home
     jenkins-home-slave:
         driver: local
         driver_opts:
